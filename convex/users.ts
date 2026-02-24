@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 export const createUserIfNotExists = mutation({
   args: {
@@ -9,17 +9,6 @@ export const createUserIfNotExists = mutation({
     image: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-
-    if (!identity) {
-      throw new Error("Unauthorized: no identity");
-    }
-
-    // Optional extra safety: ensure the caller's identity matches the clerkId they send
-    if (identity.subject !== args.clerkId) {
-      throw new Error("Unauthorized: identity mismatch");
-    }
-
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -37,6 +26,17 @@ export const createUserIfNotExists = mutation({
     });
 
     return userId;
+  },
+});
+
+export const getOtherUsers = query({
+  args: {
+    clerkId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const users = await ctx.db.query("users").collect();
+
+    return users.filter((user) => user.clerkId !== args.clerkId);
   },
 });
 
