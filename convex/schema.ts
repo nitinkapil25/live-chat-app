@@ -1,6 +1,14 @@
-import { defineSchema } from "convex/server";
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
 
-const schema = defineSchema({});
+const schema = defineSchema({
+  users: defineTable({
+    clerkId: v.string(),
+    name: v.string(),
+    email: v.string(),
+    image: v.string(),
+  }).index("by_clerk_id", ["clerkId"]),
+});
 
 export default schema;
 

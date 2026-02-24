@@ -8,9 +8,27 @@ import {
   UserButton,
   useUser,
 } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const [hasSyncedUser, setHasSyncedUser] = useState(false);
+  const createUserIfNotExists = useMutation(api.users.createUserIfNotExists);
+
+  useEffect(() => {
+    if (!user || hasSyncedUser) return;
+
+    const clerkId = user.id;
+    const name = user.fullName ?? "";
+    const email = user.primaryEmailAddress?.emailAddress ?? "";
+    const image = user.imageUrl ?? "";
+
+    void createUserIfNotExists({ clerkId, name, email, image }).finally(() => {
+      setHasSyncedUser(true);
+    });
+  }, [user, hasSyncedUser, createUserIfNotExists]);
 
   return (
     <main className="min-h-screen bg-background text-foreground font-[family-name:var(--font-geist-sans)]">
