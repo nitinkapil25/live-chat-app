@@ -16,10 +16,7 @@ export default function DashboardPage() {
   const { user } = useUser();
   const [hasSyncedUser, setHasSyncedUser] = useState(false);
   const createUserIfNotExists = useMutation(api.users.createUserIfNotExists);
-  const otherUsers = useQuery(
-    api.users.getOtherUsers,
-    user ? { clerkId: user.id } : "skip"
-  );
+  const otherUsers = useQuery(api.users.getOtherUsers, {});
 
   useEffect(() => {
     if (!user || hasSyncedUser) return;
@@ -41,8 +38,8 @@ export default function DashboardPage() {
       </SignedOut>
 
       <SignedIn>
-        <div className="mx-auto flex max-w-5xl gap-6 px-6 py-16">
-          <aside className="w-64 shrink-0 rounded-lg border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:flex-row sm:px-6 sm:py-16">
+          <aside className="w-full shrink-0 rounded-lg border border-border bg-card px-4 py-6 shadow-sm sm:w-64">
             <h2 className="text-sm font-semibold tracking-tight text-muted-foreground">
               Users
             </h2>

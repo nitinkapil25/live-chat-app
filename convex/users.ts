@@ -30,13 +30,17 @@ export const createUserIfNotExists = mutation({
 });
 
 export const getOtherUsers = query({
-  args: {
-    clerkId: v.string(),
-  },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
     const users = await ctx.db.query("users").collect();
 
-    return users.filter((user) => user.clerkId !== args.clerkId);
+    if (!identity) {
+      // If we somehow don't have an identity, just return all users.
+      return users;
+    }
+
+    return users.filter((user) => user.clerkId !== identity.subject);
   },
 });
 
