@@ -8,6 +8,25 @@ const schema = defineSchema({
     email: v.string(),
     image: v.string(),
   }).index("by_clerk_id", ["clerkId"]),
+
+  conversations: defineTable({
+    participantOne: v.id("users"),
+    participantTwo: v.id("users"),
+  }),
+
+  messages: defineTable({
+    conversationId: v.id("conversations"),
+    senderId: v.id("users"),
+    body: v.string(),
+    isRead: v.optional(v.boolean()),
+  }).index("by_conversation", ["conversationId"]),
+
+  presence: defineTable({
+    userId: v.id("users"),
+    isOnline: v.boolean(),
+    lastSeen: v.number(),
+    typingIn: v.optional(v.id("conversations")),
+  }).index("by_user", ["userId"]),
 });
 
 export default schema;

@@ -8,15 +8,87 @@ import {
   UserButton,
   useUser,
 } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function DashboardPage() {
   const { user } = useUser();
   const [hasSyncedUser, setHasSyncedUser] = useState(false);
   const createUserIfNotExists = useMutation(api.users.createUserIfNotExists);
-  const otherUsers = useQuery(api.users.getOtherUsers, {});
+  const sidebarUsers = useQuery(api.conversations.getSidebarUsers, {});
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const createOrGetConversation = useMutation(api.conversations.createOrGetConversation);
+  const sendMessage = useMutation(api.messages.sendMessage);
+  const markAsRead = useMutation(api.messages.markAsRead);
+  const updatePresence = useMutation(api.presence.updatePresence);
+
+  const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<Id<"conversations"> | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const messages = useQuery(
+    api.messages.getMessages,
+    selectedConversationId ? { conversationId: selectedConversationId } : "skip"
+  );
+
+  const handleUserClick = async (otherUserId: Id<"users">) => {
+    if (!currentUser) return;
+    setSelectedUserId(otherUserId);
+    const conversationId = await createOrGetConversation({
+      participantOneId: currentUser._id,
+      participantTwoId: otherUserId,
+    });
+    setSelectedConversationId(conversationId);
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedConversationId || !currentUser) return;
+
+    await sendMessage({
+      conversationId: selectedConversationId,
+      senderId: currentUser._id,
+      body: newMessage.trim(),
+    });
+    setNewMessage("");
+    void updatePresence({ isOnline: true, typingIn: undefined });
+  };
+
+  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+
+    if (!selectedConversationId) return;
+
+    void updatePresence({ isOnline: true, typingIn: selectedConversationId });
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      void updatePresence({ isOnline: true, typingIn: undefined });
+    }, 2000);
+  };
+
+  useEffect(() => {
+    // Keep user online
+    const interval = setInterval(() => {
+      void updatePresence({ isOnline: true });
+    }, 30000); // Heartbeat every 30s
+    return () => clearInterval(interval);
+  }, [updatePresence]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (selectedConversationId) {
+      void markAsRead({ conversationId: selectedConversationId });
+    }
+  }, [messages, selectedConversationId, markAsRead]);
+
 
   useEffect(() => {
     if (!user || hasSyncedUser) return;
@@ -44,31 +116,59 @@ export default function DashboardPage() {
               Users
             </h2>
             <div className="mt-4 flex flex-col gap-3">
-              {otherUsers === undefined && (
+              {sidebarUsers === undefined && (
                 <span className="text-xs text-muted-foreground">
                   Loading users...
                 </span>
               )}
-              {otherUsers && otherUsers.length === 0 && (
+              {sidebarUsers && sidebarUsers.length === 0 && (
                 <span className="text-xs text-muted-foreground">
                   No other users yet.
                 </span>
               )}
-              {otherUsers &&
-                otherUsers.map((u) => (
+              {sidebarUsers &&
+                sidebarUsers.map((item) => (
                   <div
-                    key={u._id}
-                    className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted"
+                    key={item.otherUser._id}
+                    onClick={() => handleUserClick(item.otherUser._id)}
+                    className={`flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted cursor-pointer transition-colors ${selectedUserId === item.otherUser._id ? "bg-muted" : ""
+                      }`}
                   >
-                    <img
-                      src={u.image}
-                      alt={u.name}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{u.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {u.email}
+                    <div className="relative shrink-0">
+                      <img
+                        src={item.otherUser.image}
+                        alt={item.otherUser.name}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                      {item.presence?.isOnline && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-green-500"></span>
+                      )}
+                      {!item.presence?.isOnline && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-gray-400"></span>
+                      )}
+                      {item.unreadCount > 0 && selectedUserId !== item.otherUser._id && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                          {item.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-1 flex-col overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium truncate">{item.otherUser.name}</span>
+                        {item.lastMessage && (
+                          <span className="text-[10px] text-muted-foreground ml-2 shrink-0">
+                            {new Date(item.lastMessage._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {item.presence?.typingIn === item.conversationId && item.conversationId !== null ? (
+                          <span className="italic text-primary">Typing...</span>
+                        ) : item.lastMessage ? (
+                          item.lastMessage.body
+                        ) : (
+                          "No messages yet"
+                        )}
                       </span>
                     </div>
                   </div>
@@ -102,15 +202,68 @@ export default function DashboardPage() {
               </SignOutButton>
             </header>
 
-            <section className="rounded-lg border border-border bg-card px-6 py-8 shadow-sm">
-              <h2 className="text-xl font-semibold tracking-tight">
-                Dashboard (Protected)
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                This page is protected by Clerk. Only authenticated users can
-                see it. Use this area to build your application&apos;s main
-                experience.
-              </p>
+            <section className="flex flex-col h-[500px] rounded-lg border border-border bg-card shadow-sm">
+              {selectedConversationId && selectedUserId ? (
+                <>
+                  <div className="border-b border-border px-6 py-4 flex flex-col">
+                    <h2 className="text-xl font-semibold tracking-tight">
+                      Chat with {sidebarUsers?.find((i) => i.otherUser._id === selectedUserId)?.otherUser.name}
+                    </h2>
+                    {sidebarUsers?.find((i) => i.otherUser._id === selectedUserId && i.presence?.typingIn === selectedConversationId) && (
+                      <span className="text-xs italic text-muted-foreground">Typing...</span>
+                    )}
+                  </div>
+                  <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
+                    {messages === undefined ? (
+                      <p className="text-sm text-muted-foreground text-center">Loading messages...</p>
+                    ) : messages.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center">
+                        This is the start of your conversation.
+                      </p>
+                    ) : (
+                      messages.map((msg) => {
+                        const isMine = msg.senderId === currentUser?._id;
+                        return (
+                          <div
+                            key={msg._id}
+                            className={`flex max-w-[75%] flex-col gap-1 rounded-lg px-4 py-2 text-sm ${isMine
+                              ? "self-end bg-primary text-primary-foreground"
+                              : "self-start bg-muted text-foreground"
+                              }`}
+                          >
+                            <span>{msg.body}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                  <div className="border-t border-border p-4">
+                    <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Type a message..."
+                        value={newMessage}
+                        onChange={handleTyping}
+                        className="flex-1 rounded-md border border-border px-3 py-2 text-sm text-foreground bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newMessage.trim()}
+                        className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
+                      >
+                        Send
+                      </button>
+                    </form>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-muted-foreground">
+                    Select a user to start chatting.
+                  </p>
+                </div>
+              )}
             </section>
           </div>
         </div>
