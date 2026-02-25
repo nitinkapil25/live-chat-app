@@ -26,6 +26,7 @@ export default function DashboardPage() {
 
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<Id<"conversations"> | null>(null);
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -43,6 +44,7 @@ export default function DashboardPage() {
       participantTwoId: otherUserId,
     });
     setSelectedConversationId(conversationId);
+    setMobileView("chat");
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -110,8 +112,11 @@ export default function DashboardPage() {
       </SignedOut>
 
       <SignedIn>
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:flex-row sm:px-6 sm:py-16">
-          <aside className="w-full shrink-0 rounded-lg border border-border bg-card px-4 py-6 shadow-sm sm:w-64">
+        <div className="mx-auto flex h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-8 sm:h-auto sm:flex-row sm:px-6 sm:py-16">
+          <aside
+            className={`w-full shrink-0 flex-col rounded-lg border border-border bg-card px-4 py-6 shadow-sm sm:w-80 sm:flex ${mobileView === "list" ? "flex" : "hidden"
+              }`}
+          >
             <h2 className="text-sm font-semibold tracking-tight text-muted-foreground">
               Users
             </h2>
@@ -202,16 +207,25 @@ export default function DashboardPage() {
               </SignOutButton>
             </header>
 
-            <section className="flex flex-col h-[500px] rounded-lg border border-border bg-card shadow-sm">
+            <section className={`flex flex-1 flex-col rounded-lg border border-border bg-card shadow-sm sm:flex h-[calc(100vh-12rem)] sm:h-[500px] ${mobileView === "chat" ? "flex" : "hidden"
+              }`}>
               {selectedConversationId && selectedUserId ? (
                 <>
-                  <div className="border-b border-border px-6 py-4 flex flex-col">
-                    <h2 className="text-xl font-semibold tracking-tight">
-                      Chat with {sidebarUsers?.find((i) => i.otherUser._id === selectedUserId)?.otherUser.name}
-                    </h2>
-                    {sidebarUsers?.find((i) => i.otherUser._id === selectedUserId && i.presence?.typingIn === selectedConversationId) && (
-                      <span className="text-xs italic text-muted-foreground">Typing...</span>
-                    )}
+                  <div className="border-b border-border px-6 py-4 flex items-center gap-4">
+                    <button
+                      className="sm:hidden -ml-2 p-2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setMobileView("list")}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                    </button>
+                    <div className="flex flex-col">
+                      <h2 className="text-xl font-semibold tracking-tight">
+                        Chat with {sidebarUsers?.find((i) => i.otherUser._id === selectedUserId)?.otherUser.name}
+                      </h2>
+                      {sidebarUsers?.find((i) => i.otherUser._id === selectedUserId && i.presence?.typingIn === selectedConversationId) && (
+                        <span className="text-xs italic text-muted-foreground">Typing...</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
                     {messages === undefined ? (
@@ -258,7 +272,7 @@ export default function DashboardPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex items-center justify-center flex-1">
                   <p className="text-sm text-muted-foreground">
                     Select a user to start chatting.
                   </p>
