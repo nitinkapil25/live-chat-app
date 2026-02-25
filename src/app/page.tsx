@@ -20,12 +20,12 @@ export default function Home() {
 
         <SignedOut>
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <SignUpButton mode="modal" afterSignUpUrl="/dashboard">
+            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
               <button className="rounded-2xl bg-gradient-to-br from-[#fb923c] to-[#f97316] px-5 py-2 text-sm font-semibold text-white shadow-[0_10px_18px_rgba(251,146,60,0.35)] hover:opacity-95">
                 Sign up
               </button>
             </SignUpButton>
-            <SignInButton mode="modal" afterSignInUrl="/dashboard">
+            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
               <button className="rounded-2xl bg-[#eef1f5] px-5 py-2 text-sm font-semibold text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] hover:bg-[#e5eaf1]">
                 Sign in
               </button>
