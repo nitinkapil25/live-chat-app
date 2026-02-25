@@ -19,6 +19,8 @@ const schema = defineSchema({
     senderId: v.id("users"),
     body: v.string(),
     isRead: v.optional(v.boolean()),
+    isDeleted: v.optional(v.boolean()),
+    replyToMessageId: v.optional(v.id("messages")),
   }).index("by_conversation", ["conversationId"]),
 
   presence: defineTable({
@@ -30,4 +32,3 @@ const schema = defineSchema({
 });
 
 export default schema;
-
