@@ -12,6 +12,7 @@ import { useEffect, useState, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { formatMessageTime } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -162,7 +163,7 @@ export default function DashboardPage() {
                         <span className="text-sm font-medium truncate">{item.otherUser.name}</span>
                         {item.lastMessage && (
                           <span className="text-[10px] text-muted-foreground ml-2 shrink-0">
-                            {new Date(item.lastMessage._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatMessageTime(item.lastMessage._creationTime)}
                           </span>
                         )}
                       </div>
@@ -246,6 +247,9 @@ export default function DashboardPage() {
                               }`}
                           >
                             <span>{msg.body}</span>
+                            <span className="text-[10px] self-end opacity-70">
+                              {formatMessageTime(msg._creationTime)}
+                            </span>
                           </div>
                         );
                       })
