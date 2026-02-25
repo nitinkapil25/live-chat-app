@@ -159,9 +159,9 @@ export default function DashboardPage() {
       </SignedOut>
 
       <SignedIn>
-        <div className="mx-auto flex h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-8 sm:h-auto sm:flex-row sm:px-6 sm:py-16">
+        <div className="mx-auto h-[calc(100vh-4rem)] max-w-5xl flex flex-col gap-6 px-4 py-8 sm:flex-row sm:px-6 sm:py-16">
           <aside
-            className={`w-full shrink-0 flex-col rounded-lg border border-border bg-card px-4 py-6 shadow-sm sm:w-80 sm:flex ${mobileView === "list" ? "flex" : "hidden"
+            className={`w-full shrink-0 min-h-0 flex-col rounded-lg border border-border bg-card px-4 py-6 shadow-sm sm:w-80 sm:flex ${mobileView === "list" ? "flex" : "hidden"
               }`}
           >
             <h2 className="text-sm font-semibold tracking-tight text-muted-foreground">
@@ -245,7 +245,7 @@ export default function DashboardPage() {
             </div>
           </aside>
 
-          <div className="flex flex-1 flex-col gap-6">
+          <div className="flex flex-1 min-h-0 flex-col gap-6">
             <header className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <UserButton
@@ -271,11 +271,11 @@ export default function DashboardPage() {
               </SignOutButton>
             </header>
 
-            <section className={`relative flex flex-1 flex-col rounded-lg border border-border bg-card shadow-sm sm:flex h-[calc(100vh-12rem)] sm:h-[500px] ${mobileView === "chat" ? "flex" : "hidden"
+            <section className={`relative flex flex-col flex-1 min-h-0 rounded-lg border border-border bg-card shadow-sm sm:flex ${mobileView === "chat" ? "flex" : "hidden"
               }`}>
               {selectedConversationId && selectedUserId ? (
                 <>
-                  <div className="border-b border-border px-6 py-4 flex items-center gap-4">
+                  <div className="flex shrink-0 items-center gap-4 border-b border-border px-6 py-4">
                     <button
                       className="sm:hidden -ml-2 p-2 text-muted-foreground hover:text-foreground"
                       onClick={() => setMobileView("list")}
@@ -291,7 +291,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <div ref={messagesContainerRef} className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
+                  <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-6">
                     {messages === undefined ? (
                       <p className="text-sm text-muted-foreground text-center">Loading messages...</p>
                     ) : messages.length === 0 ? (
@@ -299,23 +299,25 @@ export default function DashboardPage() {
                         <p className="text-sm text-muted-foreground text-center">Start the conversation 👋</p>
                       </div>
                     ) : (
-                      messages.map((msg) => {
-                        const isMine = msg.senderId === currentUser?._id;
-                        return (
-                          <div
-                            key={msg._id}
-                            className={`flex max-w-[75%] flex-col gap-1 rounded-lg px-4 py-2 text-sm ${isMine
-                              ? "self-end bg-primary text-primary-foreground"
-                              : "self-start bg-muted text-foreground"
-                              }`}
-                          >
-                            <span>{msg.body}</span>
-                            <span className="text-[10px] self-end opacity-70">
-                              {formatMessageTime(msg._creationTime)}
-                            </span>
-                          </div>
-                        );
-                      })
+                      <div className="flex flex-col gap-4">
+                        {messages.map((msg) => {
+                          const isMine = msg.senderId === currentUser?._id;
+                          return (
+                            <div
+                              key={msg._id}
+                              className={`flex max-w-[75%] flex-col gap-1 rounded-lg px-4 py-2 text-sm ${isMine
+                                ? "self-end bg-primary text-primary-foreground"
+                                : "self-start bg-muted text-foreground"
+                                }`}
+                            >
+                              <span>{msg.body}</span>
+                              <span className="text-[10px] self-end opacity-70">
+                                {formatMessageTime(msg._creationTime)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                     <div ref={messagesEndRef} />
                   </div>
@@ -332,7 +334,7 @@ export default function DashboardPage() {
                       New messages &darr;
                     </button>
                   )}
-                  <div className="border-t border-border p-4">
+                  <div className="shrink-0 border-t border-border p-4">
                     <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                       <input
                         type="text"
