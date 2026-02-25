@@ -8,7 +8,7 @@ import {
   UserButton,
   useUser,
 } from "@clerk/nextjs";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -28,7 +28,11 @@ export default function DashboardPage() {
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<Id<"conversations"> | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [search, setSearch] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showNewMessageButton, setShowNewMessageButton] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -36,6 +40,15 @@ export default function DashboardPage() {
     api.messages.getMessages,
     selectedConversationId ? { conversationId: selectedConversationId } : "skip"
   );
+  const filteredUsers = useMemo(() => {
+    if (!sidebarUsers) return [];
+    const searchValue = search.toLowerCase();
+    return sidebarUsers.filter((item) => {
+      if (item.otherUser._id === currentUser?._id) return false;
+      return item.otherUser.name.toLowerCase().includes(searchValue);
+    });
+  }, [sidebarUsers, search, currentUser?._id]);
+  const hasSearchText = search.trim().length > 0;
 
   const handleUserClick = async (otherUserId: Id<"users">) => {
     if (!currentUser) return;
@@ -86,11 +99,44 @@ export default function DashboardPage() {
   }, [updatePresence]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setShowNewMessageButton(false);
+    } else if (messages && messages.length > 0) {
+      setShowNewMessageButton(true);
+    }
+  }, [messages, isAtBottom]);
+
+  useEffect(() => {
     if (selectedConversationId) {
       void markAsRead({ conversationId: selectedConversationId });
     }
   }, [messages, selectedConversationId, markAsRead]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const onScroll = () => {
+      const threshold = 24;
+      const atBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+      setIsAtBottom(atBottom);
+      if (atBottom) {
+        setShowNewMessageButton(false);
+      }
+    };
+
+    onScroll();
+    container.addEventListener("scroll", onScroll);
+    return () => container.removeEventListener("scroll", onScroll);
+  }, [selectedConversationId]);
+
+  useEffect(() => {
+    setIsAtBottom(true);
+    setShowNewMessageButton(false);
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [selectedConversationId]);
 
 
   useEffect(() => {
@@ -121,19 +167,36 @@ export default function DashboardPage() {
             <h2 className="text-sm font-semibold tracking-tight text-muted-foreground">
               Users
             </h2>
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-3">
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <div className="mt-4 flex flex-1 flex-col gap-3">
               {sidebarUsers === undefined && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-center text-xs text-muted-foreground">
                   Loading users...
                 </span>
               )}
-              {sidebarUsers && sidebarUsers.length === 0 && (
-                <span className="text-xs text-muted-foreground">
-                  No other users yet.
-                </span>
+              {sidebarUsers && !hasSearchText && filteredUsers.length === 0 && (
+                <div className="flex flex-1 items-center justify-center text-center">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">No conversations yet</p>
+                    <p className="text-xs text-muted-foreground">Start a chat to begin messaging</p>
+                  </div>
+                </div>
+              )}
+              {sidebarUsers && hasSearchText && filteredUsers.length === 0 && (
+                <div className="flex flex-1 items-center justify-center text-center">
+                  <p className="text-sm text-muted-foreground">No users found</p>
+                </div>
               )}
               {sidebarUsers &&
-                sidebarUsers.map((item) => (
+                filteredUsers.map((item) => (
                   <div
                     key={item.otherUser._id}
                     onClick={() => handleUserClick(item.otherUser._id)}
@@ -208,7 +271,7 @@ export default function DashboardPage() {
               </SignOutButton>
             </header>
 
-            <section className={`flex flex-1 flex-col rounded-lg border border-border bg-card shadow-sm sm:flex h-[calc(100vh-12rem)] sm:h-[500px] ${mobileView === "chat" ? "flex" : "hidden"
+            <section className={`relative flex flex-1 flex-col rounded-lg border border-border bg-card shadow-sm sm:flex h-[calc(100vh-12rem)] sm:h-[500px] ${mobileView === "chat" ? "flex" : "hidden"
               }`}>
               {selectedConversationId && selectedUserId ? (
                 <>
@@ -228,13 +291,13 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
+                  <div ref={messagesContainerRef} className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
                     {messages === undefined ? (
                       <p className="text-sm text-muted-foreground text-center">Loading messages...</p>
                     ) : messages.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center">
-                        This is the start of your conversation.
-                      </p>
+                      <div className="flex flex-1 items-center justify-center">
+                        <p className="text-sm text-muted-foreground text-center">Start the conversation 👋</p>
+                      </div>
                     ) : (
                       messages.map((msg) => {
                         const isMine = msg.senderId === currentUser?._id;
@@ -256,6 +319,19 @@ export default function DashboardPage() {
                     )}
                     <div ref={messagesEndRef} />
                   </div>
+                  {showNewMessageButton && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                        setIsAtBottom(true);
+                        setShowNewMessageButton(false);
+                      }}
+                      className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground shadow-md hover:opacity-95"
+                    >
+                      New messages &darr;
+                    </button>
+                  )}
                   <div className="border-t border-border p-4">
                     <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                       <input
@@ -289,4 +365,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-
