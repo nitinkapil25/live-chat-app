@@ -111,6 +111,10 @@ export default function DashboardPage() {
     sidebarUsers.length > 0 &&
     hasSearchText &&
     filteredUsers.length === 0;
+  const selectedSidebarItem = useMemo(
+    () => sidebarUsers?.find((item) => item.otherUser._id === selectedUserId),
+    [sidebarUsers, selectedUserId]
+  );
   const messagesById = useMemo(() => {
     const map = new Map<string, ChatMessage>();
     if (!messages) return map;
@@ -319,18 +323,19 @@ export default function DashboardPage() {
   }, [user, hasSyncedUser, createUserIfNotExists]);
 
   return (
-    <main className="h-screen bg-[#0b141a] font-[family-name:var(--font-geist-sans)] text-white flex items-center justify-center">
+    <main className="h-screen bg-[#f5f6f8] font-[family-name:var(--font-geist-sans)] text-slate-700">
       <SignedOut>
         <RedirectToSignIn />
       </SignedOut>
 
       <SignedIn>
-        <div className="w-[95vw] h-[95vh] max-w-[1600px] bg-[#111b21] flex rounded-lg overflow-hidden shadow-2xl">
+        <div className="h-full w-full p-3 sm:p-6">
+          <div className="mx-auto flex h-full max-w-[1600px] gap-4">
           <aside
-            className={`w-full sm:w-[30%] min-w-[320px] max-w-[420px] bg-[#111b21] border-r border-[#222d34] min-h-0 flex-col ${mobileView === "list" ? "flex" : "hidden sm:flex"
+            className={`w-full sm:w-[30%] sm:min-w-[320px] sm:max-w-[420px] min-h-0 flex-col rounded-[28px] bg-gradient-to-b from-[#fff8f1] via-white/85 to-[#fff3e8] backdrop-blur-xl shadow-[0_10px_35px_rgba(148,163,184,0.22)] ring-1 ring-white/70 ${mobileView === "list" ? "flex" : "hidden sm:flex"
               }`}
           >
-            <div className="h-16 bg-[#202c33] flex items-center justify-between px-4">
+            <div className="h-16 sticky top-0 z-10 rounded-t-[28px] bg-white/80 backdrop-blur-xl flex items-center justify-between px-4">
               <div className="flex items-center gap-3">
                 <UserButton
                   appearance={{
@@ -344,28 +349,28 @@ export default function DashboardPage() {
                 </span>
               </div>
               <SignOutButton redirectUrl="/">
-                <button className="text-xs text-[#00a884] font-semibold">
+                <button className="text-xs text-[#f97316] font-semibold">
                   Sign out
                 </button>
               </SignOutButton>
             </div>
-            <div className="p-3 bg-[#111b21]">
+            <div className="p-3">
               <input
                 type="text"
                 placeholder="Search users..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#202c33] text-sm text-white placeholder:text-gray-400 rounded-lg px-4 py-2 outline-none"
+                className="w-full rounded-2xl bg-[#eef1f5] px-4 py-2 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-[#fb923c]/40"
               />
             </div>
-            <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[#2a3942] [&::-webkit-scrollbar-track]:bg-transparent">
+            <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-track]:bg-transparent">
               {sidebarUsers === undefined && (
-                <span className="text-center text-xs text-gray-400 block mt-4">
+                <span className="text-center text-xs text-slate-400 block mt-4">
                   Loading users...
                 </span>
               )}
               {hasNoSidebarUsers && (
-                <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                <div className="flex h-full flex-col items-center justify-center text-slate-400">
                   <EmptyState
                     icon={MessageCircle}
                     title="No conversations yet"
@@ -374,7 +379,7 @@ export default function DashboardPage() {
                 </div>
               )}
               {hasNoSearchResults && (
-                <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                <div className="flex h-full flex-col items-center justify-center text-slate-400">
                   <EmptyState
                     icon={MessageCircle}
                     title="No users found"
@@ -389,7 +394,7 @@ export default function DashboardPage() {
                   <div
                     key={item.otherUser._id}
                     onClick={() => handleUserClick(item.otherUser._id)}
-                    className={`flex items-center gap-3 px-4 py-3 hover:bg-[#202c33] cursor-pointer transition-colors ${selectedUserId === item.otherUser._id ? "bg-[#202c33]" : ""
+                    className={`mx-2 flex items-center gap-3 rounded-2xl px-4 py-3 cursor-pointer transition-colors ${selectedUserId === item.otherUser._id ? "bg-white shadow-[0_8px_22px_rgba(251,146,60,0.2)] ring-1 ring-[#fdba74]/50" : "hover:bg-white/80"
                       }`}
                   >
                     <div className="relative shrink-0">
@@ -399,29 +404,29 @@ export default function DashboardPage() {
                         className="h-10 w-10 rounded-full object-cover"
                       />
                       {item.presence?.isOnline && (
-                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#111b21] bg-[#00a884]"></span>
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-[#22c55e]"></span>
                       )}
                       {!item.presence?.isOnline && (
-                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#111b21] bg-gray-500"></span>
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-slate-400"></span>
                       )}
                       {item.unreadCount > 0 && selectedUserId !== item.otherUser._id && (
-                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#00a884] text-[10px] font-bold text-[#111b21]">
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#fb923c] text-[10px] font-bold text-white">
                           {item.unreadCount}
                         </span>
                       )}
                     </div>
                     <div className="flex flex-1 flex-col overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium truncate text-white">{item.otherUser.name}</span>
+                        <span className="text-sm font-medium truncate text-slate-800">{item.otherUser.name}</span>
                         {item.lastMessage && (
-                          <span className="text-xs text-gray-400 ml-2 shrink-0">
+                          <span className="text-xs text-slate-400 ml-2 shrink-0">
                             {formatMessageTime(item.lastMessage._creationTime)}
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-gray-400 truncate">
+                      <span className="text-xs text-slate-500 truncate">
                         {item.presence?.typingIn === item.conversationId && item.conversationId !== null ? (
-                          <span className="italic text-[#00a884]">Typing...</span>
+                          <span className="italic text-[#f97316]">Typing...</span>
                         ) : item.lastMessage ? (
                           item.lastMessage.body
                         ) : (
@@ -434,31 +439,50 @@ export default function DashboardPage() {
             </div>
           </aside>
 
-          <section ref={chatSectionRef} className={`relative flex-1 flex flex-col bg-[#0b141a] min-h-0 ${mobileView === "chat" ? "flex" : "hidden sm:flex"
+          <section ref={chatSectionRef} className={`relative flex h-full flex-1 flex-col min-h-0 overflow-hidden rounded-[28px] bg-transparent shadow-[0_10px_35px_rgba(148,163,184,0.22)] ring-1 ring-white/70 ${mobileView === "chat" ? "flex" : "hidden sm:flex"
               }`}>
               {selectedConversationId && selectedUserId ? (
                 <>
-                  <div className="h-16 bg-[#202c33] flex items-center px-4 border-l border-[#222d34] shrink-0 gap-4">
+                  <div className="sticky top-0 z-30 h-16 flex-shrink-0 rounded-t-[28px] overflow-hidden shadow-sm transition-colors duration-300">
+                    <div className="absolute inset-0 border-b border-white/20 bg-white/55 supports-[backdrop-filter]:bg-white/35 backdrop-blur-2xl" />
+                    <div className="relative z-10 flex h-full items-center px-4 gap-4">
                     <button
-                      className="sm:hidden -ml-2 p-2 text-gray-300 hover:text-white"
+                      className="sm:hidden -ml-2 p-2 text-slate-500 hover:text-slate-700"
                       onClick={() => setMobileView("list")}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
                     </button>
-                    <div className="flex flex-col">
-                      <h2 className="text-sm font-medium text-white">
-                        Chat with {sidebarUsers?.find((i) => i.otherUser._id === selectedUserId)?.otherUser.name}
-                      </h2>
-                      {sidebarUsers?.find((i) => i.otherUser._id === selectedUserId && i.presence?.typingIn === selectedConversationId) && (
-                        <span className="text-xs italic text-gray-300">Typing...</span>
+                    <div className="flex items-center gap-3">
+                      {selectedSidebarItem?.otherUser.image ? (
+                        <img
+                          src={selectedSidebarItem.otherUser.image}
+                          alt={selectedSidebarItem.otherUser.name}
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-[#eef1f5]" />
                       )}
+                      <div className="flex flex-col">
+                        <h2 className="text-sm font-medium text-slate-800">
+                          {selectedSidebarItem?.otherUser.name ?? "Chat"}
+                        </h2>
+                        {selectedSidebarItem?.presence?.typingIn === selectedConversationId ? (
+                          <span className="text-xs italic text-slate-500">Typing...</span>
+                        ) : (
+                          <span className="text-xs text-slate-500 flex items-center gap-1.5">
+                            <span className={`h-2 w-2 rounded-full ${selectedSidebarItem?.presence?.isOnline ? "bg-[#22c55e]" : "bg-slate-400"}`} />
+                            {selectedSidebarItem?.presence?.isOnline ? "Online" : "Offline"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     </div>
                   </div>
-                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-2 bg-[#0b141a] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[#2a3942] [&::-webkit-scrollbar-track]:bg-transparent">
+                  <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-track]:bg-transparent">
                     {messages === undefined ? (
-                      <p className="text-sm text-gray-400 text-center">Loading messages...</p>
+                      <p className="text-sm text-slate-400 text-center">Loading messages...</p>
                     ) : messages.length === 0 ? (
-                      <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                      <div className="flex h-full flex-col items-center justify-center text-slate-400">
                         <EmptyState
                           icon={MessageCircle}
                           title="No messages yet"
@@ -472,6 +496,8 @@ export default function DashboardPage() {
                           const repliedMessage = msg.replyToMessageId
                             ? messagesById.get(String(msg.replyToMessageId))
                             : null;
+                          const incomingAvatar = selectedSidebarItem?.otherUser.image;
+                          const outgoingAvatar = user?.imageUrl;
                           return (
                             <div
                               key={msg._id}
@@ -480,22 +506,46 @@ export default function DashboardPage() {
                               onTouchMove={clearLongPressTimer}
                               onTouchEnd={clearLongPressTimer}
                               onTouchCancel={clearLongPressTimer}
-                              className={`max-w-[65%] px-3 py-2 text-sm text-white ${isMine
-                                ? "ml-auto bg-[#005c4b] rounded-lg rounded-tr-none"
-                                : "mr-auto bg-[#202c33] rounded-lg rounded-tl-none"
-                                }`}
+                              className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"}`}
                             >
-                              {repliedMessage && (
-                                <div className={`mb-2 rounded-md border-l-2 px-2 py-1 text-xs ${isMine ? "bg-[#014436] border-[#7cd8c1] text-gray-200" : "bg-[#27343c] border-[#00a884] text-gray-200"}`}>
-                                  <p className="truncate">
-                                    {repliedMessage.isDeleted ? "This message was deleted" : repliedMessage.body}
-                                  </p>
-                                </div>
-                              )}
-                              <span className={msg.isDeleted ? "italic text-gray-300" : ""}>{msg.body}</span>
-                              <span className={`text-[11px] mt-1 text-right block ${msg.isDeleted ? "italic text-gray-400" : "text-gray-300"}`}>
-                                {formatMessageTime(msg._creationTime)}
-                              </span>
+                              {!isMine &&
+                                (incomingAvatar ? (
+                                  <img
+                                    src={incomingAvatar}
+                                    alt={selectedSidebarItem?.otherUser.name ?? "User"}
+                                    className="h-8 w-8 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-[#eef1f5]" />
+                                ))}
+                              <div
+                                className={`max-w-[65%] px-4 py-3 text-sm shadow-[0_8px_18px_rgba(148,163,184,0.22)] ${isMine
+                                  ? "rounded-[22px] bg-gradient-to-br from-[#fb923c] to-[#f97316] text-white"
+                                  : "rounded-[22px] bg-[#eef1f5] text-slate-700"
+                                  }`}
+                              >
+                                {repliedMessage && (
+                                  <div className={`mb-2 rounded-xl border-l-2 px-2 py-1 text-xs ${isMine ? "bg-white/25 border-white/80 text-white" : "bg-white border-[#fb923c] text-slate-500"}`}>
+                                    <p className="truncate">
+                                      {repliedMessage.isDeleted ? "This message was deleted" : repliedMessage.body}
+                                    </p>
+                                  </div>
+                                )}
+                                <span className={msg.isDeleted ? "italic opacity-80" : ""}>{msg.body}</span>
+                                <span className={`text-[11px] mt-1 text-right block ${isMine ? "text-white/85" : "text-slate-400"} ${msg.isDeleted ? "italic" : ""}`}>
+                                  {formatMessageTime(msg._creationTime)}
+                                </span>
+                              </div>
+                              {isMine &&
+                                (outgoingAvatar ? (
+                                  <img
+                                    src={outgoingAvatar}
+                                    alt={user?.fullName ?? "Me"}
+                                    className="h-8 w-8 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-[#fde6d0]" />
+                                ))}
                             </div>
                           );
                         })}
@@ -511,7 +561,7 @@ export default function DashboardPage() {
                         setIsAtBottom(true);
                         setShowNewMessageButton(false);
                       }}
-                      className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full bg-[#202c33] border border-[#2a3942] px-4 py-2 text-xs font-medium text-[#00a884] shadow-md hover:opacity-95"
+                      className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-full bg-white/95 px-4 py-2 text-xs font-medium text-[#f97316] shadow-[0_8px_20px_rgba(148,163,184,0.25)] hover:opacity-95"
                     >
                       New messages &darr;
                     </button>
@@ -519,20 +569,20 @@ export default function DashboardPage() {
                   {selectedMessage && menuPosition && (
                     <div
                       ref={menuRef}
-                      className="absolute z-50 w-40 overflow-hidden rounded-md border border-[#2a3942] bg-[#202c33] shadow-xl"
+                      className="absolute z-50 w-40 overflow-hidden rounded-2xl bg-white shadow-[0_14px_30px_rgba(148,163,184,0.35)]"
                       style={{ left: menuPosition.x, top: menuPosition.y }}
                     >
                       <button
                         type="button"
                         onClick={handleReplyToMessage}
-                        className="block w-full px-3 py-2 text-left text-sm text-white hover:bg-[#2a3942]"
+                        className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                       >
                         Reply
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleCopyMessage()}
-                        className="block w-full px-3 py-2 text-left text-sm text-white hover:bg-[#2a3942]"
+                        className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                       >
                         Copy
                       </button>
@@ -540,23 +590,23 @@ export default function DashboardPage() {
                         <button
                           type="button"
                           onClick={() => void handleDeleteMessage()}
-                          className="block w-full px-3 py-2 text-left text-sm text-red-300 hover:bg-[#2a3942]"
+                          className="block w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-slate-50"
                         >
                           Delete
                         </button>
                       )}
                     </div>
                   )}
-                  <div className="bg-[#202c33] px-4 py-2 shrink-0">
+                  <div className="sticky bottom-0 z-10 shrink-0 rounded-b-[28px] bg-white/85 backdrop-blur-xl px-4 py-3">
                     {replyTo && (
-                      <div className="mb-2 flex items-center justify-between rounded-md border-l-2 border-[#00a884] bg-[#2a3942] px-3 py-2">
-                        <p className="truncate text-xs text-gray-200">
+                      <div className="mb-2 flex items-center justify-between rounded-2xl border-l-2 border-[#fb923c] bg-[#eef1f5] px-3 py-2">
+                        <p className="truncate text-xs text-slate-500">
                           Replying to: {replyTo.isDeleted ? "This message was deleted" : replyTo.body}
                         </p>
                         <button
                           type="button"
                           onClick={() => setReplyTo(null)}
-                          className="ml-2 text-xs text-[#00a884] hover:opacity-80"
+                          className="ml-2 text-xs text-[#f97316] hover:opacity-80"
                         >
                           Cancel
                         </button>
@@ -569,12 +619,12 @@ export default function DashboardPage() {
                         placeholder="Type a message..."
                         value={newMessage}
                         onChange={handleTyping}
-                        className="flex-1 bg-[#2a3942] text-white rounded-lg px-4 py-2 outline-none"
+                        className="flex-1 rounded-2xl bg-[#eef1f5] px-4 py-3 text-slate-700 outline-none focus:ring-2 focus:ring-[#fb923c]/40"
                       />
                       <button
                         type="submit"
                         disabled={!newMessage.trim()}
-                        className="text-[#00a884] font-semibold text-sm disabled:opacity-50"
+                        className="rounded-2xl bg-gradient-to-br from-[#fb923c] to-[#f97316] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(251,146,60,0.35)] disabled:opacity-50"
                       >
                         Send
                       </button>
@@ -582,7 +632,7 @@ export default function DashboardPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                <div className="flex h-full flex-col items-center justify-center text-slate-400">
                   <EmptyState
                     icon={MessageCircle}
                     title="Select a chat"
@@ -590,7 +640,8 @@ export default function DashboardPage() {
                   />
                 </div>
               )}
-            </section>
+          </section>
+          </div>
         </div>
       </SignedIn>
     </main>
