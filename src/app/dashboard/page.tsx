@@ -8,11 +8,50 @@ import {
   UserButton,
   useUser,
 } from "@clerk/nextjs";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatMessageTime } from "@/lib/utils";
+
+type IconProps = {
+  className?: string;
+};
+
+function MessageCircle({ className }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+    </svg>
+  );
+}
+
+type EmptyStateProps = {
+  icon: ComponentType<IconProps>;
+  title: string;
+  description: string;
+  className?: string;
+};
+
+function EmptyState({ icon: Icon, title, description, className = "" }: EmptyStateProps) {
+  return (
+    <div className={`text-center opacity-70 max-w-xs ${className}`}>
+      <Icon className="mx-auto mb-3 h-8 w-8" />
+      <p className="text-sm font-medium">{title}</p>
+      <p className="mt-1 text-xs">{description}</p>
+    </div>
+  );
+}
 
 type ChatMessage = {
   _id: Id<"messages">;
@@ -48,6 +87,7 @@ export default function DashboardPage() {
   const chatSectionRef = useRef<HTMLElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,6 +105,12 @@ export default function DashboardPage() {
     });
   }, [sidebarUsers, search, currentUser?._id]);
   const hasSearchText = search.trim().length > 0;
+  const hasNoSidebarUsers = sidebarUsers !== undefined && sidebarUsers.length === 0;
+  const hasNoSearchResults =
+    sidebarUsers !== undefined &&
+    sidebarUsers.length > 0 &&
+    hasSearchText &&
+    filteredUsers.length === 0;
   const messagesById = useMemo(() => {
     const map = new Map<string, ChatMessage>();
     if (!messages) return map;
@@ -168,6 +214,7 @@ export default function DashboardPage() {
   const handleReplyToMessage = () => {
     if (!selectedMessage) return;
     setReplyTo(selectedMessage);
+    inputRef.current?.focus();
     closeMessageMenu();
   };
 
@@ -251,6 +298,12 @@ export default function DashboardPage() {
     return () => clearLongPressTimer();
   }, []);
 
+  useEffect(() => {
+    if (replyTo) {
+      inputRef.current?.focus();
+    }
+  }, [replyTo]);
+
 
   useEffect(() => {
     if (!user || hasSyncedUser) return;
@@ -311,20 +364,27 @@ export default function DashboardPage() {
                   Loading users...
                 </span>
               )}
-              {sidebarUsers && !hasSearchText && filteredUsers.length === 0 && (
-                <div className="flex flex-1 items-center justify-center text-center">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-white">No conversations yet</p>
-                    <p className="text-xs text-gray-400">Start a chat to begin messaging</p>
-                  </div>
+              {hasNoSidebarUsers && (
+                <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                  <EmptyState
+                    icon={MessageCircle}
+                    title="No conversations yet"
+                    description="Search for a user to start chatting"
+                  />
                 </div>
               )}
-              {sidebarUsers && hasSearchText && filteredUsers.length === 0 && (
-                <div className="flex flex-1 items-center justify-center text-center">
-                  <p className="text-sm text-gray-400">No users found</p>
+              {hasNoSearchResults && (
+                <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                  <EmptyState
+                    icon={MessageCircle}
+                    title="No users found"
+                    description="Try a different name"
+                  />
                 </div>
               )}
               {sidebarUsers &&
+                !hasNoSidebarUsers &&
+                !hasNoSearchResults &&
                 filteredUsers.map((item) => (
                   <div
                     key={item.otherUser._id}
@@ -398,8 +458,12 @@ export default function DashboardPage() {
                     {messages === undefined ? (
                       <p className="text-sm text-gray-400 text-center">Loading messages...</p>
                     ) : messages.length === 0 ? (
-                      <div className="flex flex-1 items-center justify-center">
-                        <p className="text-sm text-gray-400 text-center">Start the conversation 👋</p>
+                      <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                        <EmptyState
+                          icon={MessageCircle}
+                          title="No messages yet"
+                          description="Send a message to start the conversation &#128075;"
+                        />
                       </div>
                     ) : (
                       <div className="flex flex-col gap-4">
@@ -500,6 +564,7 @@ export default function DashboardPage() {
                     )}
                     <form onSubmit={handleSendMessage} className="flex items-center gap-3 w-full">
                       <input
+                        ref={inputRef}
                         type="text"
                         placeholder="Type a message..."
                         value={newMessage}
@@ -517,10 +582,12 @@ export default function DashboardPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center flex-1">
-                  <p className="text-sm text-gray-400">
-                    Select a user to start chatting.
-                  </p>
+                <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                  <EmptyState
+                    icon={MessageCircle}
+                    title="Select a chat"
+                    description="Choose a user from the left to start messaging"
+                  />
                 </div>
               )}
             </section>
